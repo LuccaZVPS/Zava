@@ -1,0 +1,9 @@
+- [] Add routes with methods
+- [] Add middlewares
+- [] Add chained middlewares
+- [] Add static files
+- [] Add file upload suport
+- [] Add cookie suport
+- [] Add headers suport
+- [] Add global exeception filter
+- [] Non optional query params
