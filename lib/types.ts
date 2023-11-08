@@ -2,16 +2,14 @@ import { ServerResponse, IncomingMessage } from "http";
 export interface IRoute {
   url: string;
   method: string;
-  middlewares: IMiddleware[];
-  resolver: IResolver;
+  resolvers: IResolver[];
 }
 
-export type IMiddleware = (
-  req: IncomingMessage,
+export type IResolver = (
+  req: Request,
   res: Response,
-  nextFn: () => void
+  nextFn?: () => void
 ) => void;
-export type IResolver = (req: Request, res: Response) => void;
 
 export interface IRouter {
   get(route: string, cb: IResolver): void;
@@ -20,14 +18,16 @@ export interface IRouter {
   delete(route: string, cb: IResolver): void;
   patch(route: string, cb: IResolver): void;
   patch(route: string, cb: IResolver): void;
-  createRoute(method: string, route: string, cb: IResolver): void;
   routes: IRoute[];
 }
 
 export interface Request extends IncomingMessage {
   body: any;
+  query: any;
+  params: any;
 }
 export interface Response extends ServerResponse {
   send(status: number, data?: SendOptions): void;
 }
 export type SendOptions = string | object[] | object | number;
+export type ErrorHandler = (req: Request, res: Response, error: Error) => void;
