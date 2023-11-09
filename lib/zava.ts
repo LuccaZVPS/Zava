@@ -114,6 +114,8 @@ export class Zava extends Router {
     }
   }
   private findRoute(url: string, req): { route: IRoute | void; params: any } {
+    let params = {};
+    let foundRoute: IRoute;
     if (url.endsWith("/")) {
       url = url.slice(0, -1);
     }
@@ -125,33 +127,38 @@ export class Zava extends Router {
       if (route.method !== req.method.toLowerCase()) {
         continue;
       }
-      let routeExist = true;
-      const params = {};
       const biggerList =
         routeParts.length > urlParts.length ? routeParts : urlParts;
+      let urlExist = true;
+      const tempParam = {};
       for (let index = 0; index < biggerList.length; index++) {
         const r1 = routeParts[index];
         const r2 = urlParts[index];
         if (r1?.startsWith(":")) {
           if (r1.endsWith("?")) {
-            params[removeCharacters(r1, ":", "?")] = r2;
+            tempParam[removeCharacters(r1, ":", "?")] = r2;
             continue;
           }
           if (!r2) {
-            routeExist = false;
+            urlExist = false;
             continue;
           }
-          params[removeCharacters(r1, ":", "?")] = r2;
+          tempParam[removeCharacters(r1, ":", "?")] = r2;
         } else {
           if (r1 != r2) {
-            routeExist = false;
+            urlExist = false;
             continue;
           }
         }
       }
-      if (routeExist) {
-        return { route: route, params };
+      if (urlExist) {
+        foundRoute = route;
+        params = tempParam;
       }
     }
+    if (foundRoute) {
+      return { route: foundRoute, params };
+    }
+    return { route: null, params };
   }
 }

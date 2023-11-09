@@ -1,7 +1,11 @@
 import { IResolver, IRoute, IRouter } from "./types";
 export class Router implements IRouter {
+  static(route: string, ...cb: IResolver[]): void {}
   routes: IRoute[] = [];
   get(route: string, ...cb: IResolver[]) {
+    const staticResolver: IResolver = (req, res) => {
+      // handleStatic()
+    };
     this.createRoute("get", route, cb);
   }
   post(route: string, ...cb: IResolver[]) {

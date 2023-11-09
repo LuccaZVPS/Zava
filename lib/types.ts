@@ -12,12 +12,13 @@ export type IResolver = (
 ) => void;
 
 export interface IRouter {
-  get(route: string, cb: IResolver): void;
-  post(route: string, cb: IResolver): void;
-  put(route: string, cb: IResolver): void;
-  delete(route: string, cb: IResolver): void;
-  patch(route: string, cb: IResolver): void;
-  patch(route: string, cb: IResolver): void;
+  get(route: string, ...cb: IResolver[]): void;
+  post(route: string, ...cb: IResolver[]): void;
+  put(route: string, ...cb: IResolver[]): void;
+  delete(route: string, ...cb: IResolver[]): void;
+  patch(route: string, ...cb: IResolver[]): void;
+  patch(route: string, ...cb: IResolver[]): void;
+  static(route: string, ...cb: IResolver[]): void;
   routes: IRoute[];
 }
 
