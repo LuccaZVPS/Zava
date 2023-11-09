@@ -114,6 +114,14 @@ export class Zava extends Router {
     }
   }
   private findRoute(url: string, req): { route: IRoute | void; params: any } {
+    if (url === "/") {
+      return {
+        route: this.routes.find(
+          (r) => r.method === req.method.toLowerCase() && r.url === "/"
+        ),
+        params: {},
+      };
+    }
     let params = {};
     let foundRoute: IRoute;
     if (url.endsWith("/")) {
