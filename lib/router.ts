@@ -1,11 +1,8 @@
 import { IResolver, IRoute, IRouter } from "./types";
+import { pathToRegexp } from "path-to-regexp";
 export class Router implements IRouter {
-  static(route: string, ...cb: IResolver[]): void {}
   routes: IRoute[] = [];
   get(route: string, ...cb: IResolver[]) {
-    const staticResolver: IResolver = (req, res) => {
-      // handleStatic()
-    };
     this.createRoute("get", route, cb);
   }
   post(route: string, ...cb: IResolver[]) {
@@ -20,7 +17,18 @@ export class Router implements IRouter {
   delete(route: string, ...cb: IResolver[]) {
     this.createRoute("delete", route, cb);
   }
+  head(route: string, ...cb: IResolver[]) {
+    this.createRoute("head", route, cb);
+  }
+  options(route: string, ...cb: IResolver[]) {
+    this.createRoute("options", route, cb);
+  }
   private createRoute(method: string, route: string, cb: IResolver[]) {
-    this.routes.push({ method, url: route, resolvers: cb });
+    this.routes.push({
+      method,
+      route,
+      regex: pathToRegexp(route),
+      resolvers: cb,
+    });
   }
 }

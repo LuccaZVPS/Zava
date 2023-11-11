@@ -12,27 +12,20 @@ export const queryParser = (query: string): any => {
   queryFormated[querySplited[0]] = querySplited[1];
   return queryFormated;
 };
-
-export const compareArray = (a1: any[], a2: any[]) => {
-  let isEqual = true;
-  if (a1.length !== a2.length) {
-    isEqual = false;
-    return isEqual;
+export const getParams = (route: string, originalRoute: string) => {
+  const params: { [key: string]: string } = {};
+  if (!originalRoute.includes(":")) {
+    return params;
   }
-  for (let index = 0; index < a1.length; index++) {
-    if (a1[index] !== a2[index]) {
-      isEqual = false;
-      break;
-    }
+  const regex = new RegExp(
+    originalRoute.replace(/:[^/?]+/g, "([^/]+)").replace(/\//g, "\\/") + "$",
+    "i"
+  );
+  const match = route.match(regex);
+  if (match) {
+    originalRoute.match(/:([^/?]+)/g)?.forEach((param, index) => {
+      params[param.slice(1)] = match[index + 1];
+    });
   }
-  return isEqual;
-};
-
-export const removeCharacters = (input: string, ...toRemove: string[]) => {
-  for (const str of toRemove) {
-    for (const char of str) {
-      input = input.split(char).join("");
-    }
-  }
-  return input;
+  return params;
 };
