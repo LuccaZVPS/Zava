@@ -3,32 +3,46 @@ import { pathToRegexp } from "path-to-regexp";
 export class Router implements IRouter {
   routes: IRoute[] = [];
   get(route: string, ...cb: IResolver[]) {
-    this.createRoute("get", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("get", route, c);
+    });
   }
   post(route: string, ...cb: IResolver[]) {
-    this.createRoute("post", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("get", route, c);
+    });
   }
   put(route: string, ...cb: IResolver[]) {
-    this.createRoute("put", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("put", route, c);
+    });
   }
   patch(route: string, ...cb: IResolver[]) {
-    this.createRoute("patch", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("patch", route, c);
+    });
   }
   delete(route: string, ...cb: IResolver[]) {
-    this.createRoute("delete", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("delete", route, c);
+    });
   }
   head(route: string, ...cb: IResolver[]) {
-    this.createRoute("head", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("head", route, c);
+    });
   }
   options(route: string, ...cb: IResolver[]) {
-    this.createRoute("options", route, cb);
+    cb.forEach((c) => {
+      this.createRoute("options", route, c);
+    });
   }
-  private createRoute(method: string, route: string, cb: IResolver[]) {
+  private createRoute(method: string, route: string, cb: IResolver) {
     this.routes.push({
       method,
       route,
       regex: pathToRegexp(route),
-      resolvers: cb,
+      resolver: cb,
     });
   }
 }

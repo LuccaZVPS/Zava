@@ -1,9 +1,9 @@
 import { ServerResponse, IncomingMessage } from "http";
 export interface IRoute {
-  regex: RegExp;
-  method: string;
-  resolvers: IResolver[];
-  route: string;
+  regex?: RegExp;
+  method?: string;
+  resolver: IResolver;
+  route?: string;
 }
 
 export type IResolver = (
@@ -21,14 +21,18 @@ export interface Request extends IncomingMessage {
   query: any;
   params: any;
   pathConfig: string;
+  ended: boolean;
 }
 export interface Response extends ServerResponse {
   send(status: number, data?: SendOptions): void;
+  ended: boolean;
+  sendFile(status: number, filePath: string): void;
 }
-export type SendOptions = string | object[] | object | number;
+export type SendOptions =
+  | string
+  | Record<string, any>
+  | number
+  | boolean
+  | null
+  | undefined;
 export type ErrorHandler = (req: Request, res: Response, error: Error) => void;
-export interface GlobalResolver {
-  route?: string;
-  resolvers: IResolver[];
-  regex?: RegExp;
-}

@@ -1,11 +1,11 @@
 import rootPath from "pkg-dir";
 import http, { ServerResponse, IncomingMessage } from "http";
+import { pathToRegexp } from "path-to-regexp";
+import fs from "fs";
 import mime from "mime";
 import path from "path";
-import { pathToRegexp } from "path-to-regexp";
 import {
   ErrorHandler,
-  GlobalResolver,
   IResolver,
   IRoute,
   IRouter,
@@ -13,19 +13,16 @@ import {
   Response,
   SendOptions,
 } from "./types";
-import { Buffer } from "safe-buffer";
 import parser from "parseurl";
 import { Router } from "./router";
-import { getParams, queryParser } from "./utils";
-import fs from "fs";
+import { queryParser } from "./utils";
+import { bodyParser } from "./body-parser";
 export class Zava extends Router {
   constructor() {
     super();
   }
   routes: IRoute[] = [];
-  globalResolvers: GlobalResolver[] = [];
   private exceptionFilterFN: ErrorHandler;
-  private readonly BODY_MAX_SIZE = 1024 * 1024; // 1 MB;
   addRoutes(router: IRouter) {
     this.routes = router.routes;
   }
@@ -35,6 +32,7 @@ export class Zava extends Router {
     const server = http.createServer(handleRequest);
     server.listen(port);
   }
+
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     try {
       const url = parser.original(req);
@@ -43,114 +41,26 @@ export class Zava extends Router {
       req["query"] = {};
       req["params"] = {};
       res["send"] = this.send;
+      res["ended"] = false;
+      res["sendFile"] = this.sendFile;
       if (url.query) {
         query = queryParser(url["query"] as string);
       }
-      const bodyConverter = await this.handleBody(req, res);
+      const bodyConverter = await bodyParser(req as Request, res as Response);
       if (!bodyConverter.status) {
         return;
       }
       req["body"] = bodyConverter.body;
       req["query"] = query;
-      let next = true;
-      for (let i = 0; i < this.globalResolvers.length; i++) {
-        if (next) {
-          const resolver = this.globalResolvers[i];
-          const resolvers = resolver.resolvers;
-          req["pathConfig"] = resolver.route;
-          if (!resolver.route) {
-            next = false;
-            resolvers.forEach(async (r) => {
-              await r(req as Request, res as Response, () => (next = true));
-            });
-          } else if (resolver.regex && resolver.regex.test(url.pathname)) {
-            next = false;
-            resolvers.forEach(async (r) => {
-              await r(req as Request, res as Response, () => (next = true));
-            });
-          } else if (
-            !resolver.route.includes(":") &&
-            url.pathname.includes(resolver.route) &&
-            url.pathname[resolver.route.length] === "/"
-          ) {
-            next = false;
-            resolvers.forEach(async (r) => {
-              await r(req as Request, res as Response, () => (next = true));
-            });
-          }
-        } else {
-          break;
-        }
-      }
-      if (!next) {
-        return;
-      }
-
-      //@ts-ignore
-      const route = this.routes.find(
-        (r) =>
-          r.regex.test(url.pathname) && r.method === req.method.toLowerCase()
-      );
-
-      if (route) {
-        const params = getParams(url.pathname, route.route);
-        req["params"] = params;
-        res["send"] = this.send;
-        try {
-          req["pathConfig"] = route.route;
-          await this.resolverHandler(req as Request, res as Response, route);
-        } catch (e) {
-          if (this.exceptionFilterFN) {
-            await this.exceptionFilterFN(req as Request, res as Response, e);
-          } else {
-            throw e;
-          }
-        }
-      } else {
-        res.writeHead(404);
-        res.end();
-      }
+      await this.handleResolvers(req as Request, res as Response, url);
     } catch (e) {
-      console.log(e);
+      if (this.exceptionFilterFN) {
+        this.exceptionFilterFN(req as Request, res as Response, e);
+      }
     }
   }
-
-  private handleBody(
-    req: IncomingMessage,
-    res
-  ): Promise<{ body: any; status: boolean }> {
-    return new Promise((resolve) => {
-      let body = Buffer.from("");
-
-      req.on("data", (chunk) => {
-        if (Buffer.length + chunk.length > this.BODY_MAX_SIZE) {
-          resolve({ body: "", status: false });
-          res.writeHead(413);
-          res.end("Body too large");
-          req.destroy();
-        } else {
-          body = Buffer.concat([body, chunk]);
-        }
-      });
-
-      req.on("end", () => {
-        try {
-          if (body.length > 0) {
-            body = JSON.parse(body.toString("utf-8"));
-          } else {
-            body = {} as Buffer;
-          }
-          resolve({ body, status: true });
-        } catch {
-          res.writeHead(400);
-          res.end("Invalid body provided");
-          resolve({ body: "", status: false });
-        }
-      });
-    });
-  }
-
   private send(status: number, data: SendOptions) {
+    this["ended"] = true;
     if (typeof data === "string") {
       this["writeHead"](status);
       this["end"](data);
@@ -163,53 +73,134 @@ export class Zava extends Router {
   public addExceptionFilter(errorHandler: ErrorHandler) {
     this.exceptionFilterFN = errorHandler;
   }
-  private async resolverHandler(req, res, route) {
-    let goNext = true;
+  private handleResolvers(req: Request, res: Response, url) {
+    let next = true;
 
-    for (const r of route.resolvers) {
-      if (goNext) {
-        goNext = false;
-        await r(req, res, () => {
-          goNext = true;
-        });
+    for (let i = 0; i < this.routes.length; i++) {
+      if (next && !res["ended"]) {
+        const resolver = this.routes[i];
+        req["pathConfig"] = resolver.route;
+        if (
+          resolver.regex &&
+          resolver.regex.test(url.pathname) &&
+          req.method === resolver.method
+        ) {
+          next = false;
+          resolver.resolver(
+            req as Request,
+            res as Response,
+            () => (next = true)
+          );
+        }
+        if (!resolver.route) {
+          next = false;
+          resolver.resolver(
+            req as Request,
+            res as Response,
+            () => (next = true)
+          );
+        } else if (resolver.regex && resolver.regex.test(url.pathname)) {
+          next = false;
+          resolver.resolver(
+            req as Request,
+            res as Response,
+            () => (next = true)
+          );
+        } else if (
+          !resolver.route.includes(":") &&
+          url.pathname.includes(resolver.route) &&
+          url.pathname[resolver.route.length] === "/"
+        ) {
+          next = false;
+          resolver.resolver(
+            req as Request,
+            res as Response,
+            () => (next = true)
+          );
+        }
       } else {
-        goNext = false;
+        break;
       }
     }
+    if (!res["ended"]) {
+      res.send(404);
+      return;
+    }
   }
-  apply(route: string | IResolver, ...args: IResolver[]) {
+
+  apply(route: string | IResolver | IRouter, ...args: IResolver[] | Router[]) {
+    if (route instanceof Router) {
+      this.routes.push(...route.routes);
+      return;
+    }
+    if ("routes" in args[0] && typeof route === "string") {
+      args.forEach((a) => {
+        a["routes"].forEach((r) => {
+          let newRoute = route + r["route"];
+          if (newRoute.endsWith("/") && newRoute.length > 1) {
+            newRoute = newRoute.slice(0, -1);
+          }
+          if (newRoute === "//") {
+            newRoute = "/";
+          }
+          r["route"] = newRoute;
+          r["regex"] = pathToRegexp(newRoute);
+          this.routes.push(r);
+        });
+      });
+
+      return;
+    }
+
     if (typeof route === "string") {
       if (route === "/") {
-        this.globalResolvers.push({
-          resolvers: [...args],
+        args.forEach((a) => {
+          this.routes.push({
+            resolver: a,
+          });
         });
         return;
       }
-      this.globalResolvers.push({
-        route: route,
-        regex: pathToRegexp(route),
-        resolvers: [...args],
+      args.forEach((a) => {
+        this.routes.push({
+          route: route,
+          regex: pathToRegexp(route),
+          resolver: a,
+        });
       });
-    } else {
-      this.globalResolvers.push({
-        resolvers: [route, ...args],
-      });
+      return;
     }
+
+    this.routes.push({
+      resolver: route as IResolver,
+    });
+    args.forEach((a) => {
+      this.routes.push({
+        resolver: a,
+      });
+    });
   }
+
   static(folderName: string): IResolver {
     const folderPath = rootPath.sync() + "/" + folderName;
-
     return (req, res) => {
+      res["ended"] = true;
       if (req.method !== "GET") {
-        res.writeHead(405);
+        res.send(405);
         return;
       }
       const url = parser(req);
+      if (!url.pathname.includes(".")) {
+        res.send(404);
+        return;
+      }
+
       const filePath = path.join(
         folderPath,
         url.pathname.replace(req.pathConfig, "")
       );
 
+      res["ended"] = true;
       fs.access(filePath, fs.constants.F_OK, (err) => {
         if (err) {
           res.writeHead(404);
@@ -232,5 +223,24 @@ export class Zava extends Router {
         }
       });
     };
+  }
+
+  private sendFile(status: number, filePath: string) {
+    const fileStream = fs.createReadStream(filePath);
+    this["writeHead"](status, {
+      "Content-Type": mime.lookup(filePath) || "application/octet-stream",
+      "Content-Disposition": "inline",
+    });
+
+    //@ts-ignore
+    fileStream.pipe(this);
+
+    fileStream.on("error", (error) => {
+      console.error(error);
+      this["writeHead"](500);
+      this["end"]("Internal Server Error");
+    });
+
+    this["ended"] = true;
   }
 }

@@ -1,7 +1,7 @@
 - [x] Add routes with methods
 - [x] Add middlewares
 - [x] Add chained middlewares
-- [] Add static files
+- [x] Add static files
 - [x] Add headers suport
 - [x] Add global exeception filter
 - [x] query params
