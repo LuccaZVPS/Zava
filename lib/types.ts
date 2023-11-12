@@ -36,3 +36,11 @@ export type SendOptions =
   | null
   | undefined;
 export type ErrorHandler = (req: Request, res: Response, error: Error) => void;
+export interface CorsOptions {
+  allowedOrigins?: string[] | string;
+  allowedMethods?: string | string[];
+  allowedHeaders?: string | string[];
+  exposeHeaders?: string | string[];
+  allowCredentials?: boolean;
+  maxAge?: number;
+}

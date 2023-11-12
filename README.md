@@ -125,3 +125,10 @@ const errorHandlerFn = (req: Response, res: Request, e: Error) => {
 // Add the exception filter to the application
 app.addExceptionFilter(errorHandlerFn);
 ```
+
+# Using cors
+
+```javascript
+import zava, { cors } from "zava";
+app.apply(cors());
+```

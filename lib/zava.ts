@@ -16,10 +16,12 @@ import {
 import parser from "parseurl";
 import { Router } from "./router";
 import { queryParser } from "./utils";
+import { cors } from "./middlewares/cors";
 import { bodyParser } from "./middlewares/body-parser";
 export class Zava extends Router {
   constructor() {
     super();
+    this.apply(bodyParser());
   }
   routes: IRoute[] = [];
   private exceptionFilterFN: ErrorHandler;
@@ -47,7 +49,6 @@ export class Zava extends Router {
         query = queryParser(url["query"] as string);
       }
       req["query"] = query;
-      this.apply(bodyParser(req as Request, res as Response, () => {}));
       await this.handleResolvers(req as Request, res as Response, url);
     } catch (e) {
       if (this.exceptionFilterFN) {
@@ -69,20 +70,21 @@ export class Zava extends Router {
   public addExceptionFilter(errorHandler: ErrorHandler) {
     this.exceptionFilterFN = errorHandler;
   }
-  private handleResolvers(req: Request, res: Response, url) {
+  private async handleResolvers(req: Request, res: Response, url) {
     let next = true;
 
     for (let i = 0; i < this.routes.length; i++) {
       if (next && !res["ended"]) {
         const resolver = this.routes[i];
         req["pathConfig"] = resolver.route;
+
         if (
           resolver.regex &&
           resolver.regex.test(url.pathname) &&
           req.method === resolver.method
         ) {
           next = false;
-          resolver.resolver(
+          await resolver.resolver(
             req as Request,
             res as Response,
             () => (next = true)
@@ -90,14 +92,15 @@ export class Zava extends Router {
         }
         if (!resolver.route) {
           next = false;
-          resolver.resolver(
+
+          await resolver.resolver(
             req as Request,
             res as Response,
             () => (next = true)
           );
         } else if (resolver.regex && resolver.regex.test(url.pathname)) {
           next = false;
-          resolver.resolver(
+          await resolver.resolver(
             req as Request,
             res as Response,
             () => (next = true)
@@ -108,7 +111,7 @@ export class Zava extends Router {
           url.pathname[resolver.route.length] === "/"
         ) {
           next = false;
-          resolver.resolver(
+          await resolver.resolver(
             req as Request,
             res as Response,
             () => (next = true)
@@ -129,7 +132,11 @@ export class Zava extends Router {
       this.routes.push(...route.routes);
       return;
     }
-    if ("routes" in args[0] && typeof route === "string") {
+    if (
+      typeof route !== "function" &&
+      "routes" in args[0] &&
+      typeof route === "string"
+    ) {
       args.forEach((a) => {
         a["routes"].forEach((r) => {
           let newRoute = route + r["route"];
@@ -147,7 +154,6 @@ export class Zava extends Router {
 
       return;
     }
-
     if (typeof route === "string") {
       if (route === "/") {
         args.forEach((a) => {
@@ -166,7 +172,6 @@ export class Zava extends Router {
       });
       return;
     }
-
     this.routes.push({
       resolver: route as IResolver,
     });
@@ -212,7 +217,7 @@ export class Zava extends Router {
           fileStream.pipe(res);
 
           fileStream.on("error", (error) => {
-            console.error(error);
+            console.log(error);
             res.writeHead(500);
             res.end("Internal Server Error");
           });
@@ -232,7 +237,7 @@ export class Zava extends Router {
     fileStream.pipe(this);
 
     fileStream.on("error", (error) => {
-      console.error(error);
+      console.log(error);
       this["writeHead"](500);
       this["end"]("Internal Server Error");
     });
