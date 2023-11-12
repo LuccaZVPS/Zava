@@ -29,3 +29,18 @@ export const getParams = (route: string, originalRoute: string) => {
   }
   return params;
 };
+
+export const paramParser = (route: string, path: string) => {
+  const routeToList = route.split("/");
+  const pathToList = path.split("/");
+  const length = pathToList.length;
+  const params = {};
+  routeToList.forEach((r, i) => {
+    if (r.includes(":") && i < length && pathToList[i]) {
+      r = r.replace(":", "");
+      r = r.replace("?", "");
+      params[r] = pathToList[i];
+    }
+  });
+  return params;
+};

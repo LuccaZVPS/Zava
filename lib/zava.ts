@@ -15,7 +15,7 @@ import {
 } from "./types";
 import parser from "parseurl";
 import { Router } from "./router";
-import { queryParser } from "./utils";
+import { paramParser, queryParser } from "./utils";
 import { bodyParser } from "./middlewares/body-parser";
 export class Zava extends Router {
   constructor() {
@@ -85,6 +85,7 @@ export class Zava extends Router {
           req.method.toLowerCase() === resolver.method
         ) {
           next = false;
+          req.params = paramParser(resolver.route, url.pathname);
           await resolver.resolver(
             req as Request,
             res as Response,
@@ -113,7 +114,8 @@ export class Zava extends Router {
         } else if (
           !resolver.route.includes(":") &&
           url.pathname.includes(resolver.route) &&
-          url.pathname[resolver.route.length] === "/"
+          url.pathname[resolver.route.length] === "/" &&
+          !resolver.method
         ) {
           next = false;
           await resolver.resolver(
