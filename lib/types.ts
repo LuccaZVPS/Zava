@@ -10,7 +10,7 @@ export type IResolver = (
   req: Request,
   res: Response,
   nextFn?: () => void
-) => void;
+) => any;
 
 export interface IRouter {
   routes: IRoute[];

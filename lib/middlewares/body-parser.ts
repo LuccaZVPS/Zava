@@ -1,9 +1,6 @@
-import { Request, Response } from "./types";
+import { IResolver, Request, Response } from "../types";
 
-export const bodyParser = (
-  req: Request,
-  res: Response
-): Promise<{ body: any; status: boolean }> => {
+export const bodyParser: IResolver = (req: Request, res: Response) => {
   return new Promise((resolve) => {
     let body = Buffer.from("");
 
@@ -28,11 +25,12 @@ export const bodyParser = (
         } else {
           body = {} as Buffer;
         }
-        resolve({ body, status: true });
+        req["body"] = body;
+        resolve(null);
       } catch {
         res.writeHead(400);
         res.end("Invalid body provided");
-        resolve({ body: "", status: false });
+        resolve(null);
       }
     });
   });

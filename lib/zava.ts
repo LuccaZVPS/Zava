@@ -16,7 +16,7 @@ import {
 import parser from "parseurl";
 import { Router } from "./router";
 import { queryParser } from "./utils";
-import { bodyParser } from "./body-parser";
+import { bodyParser } from "./middlewares/body-parser";
 export class Zava extends Router {
   constructor() {
     super();
@@ -46,12 +46,8 @@ export class Zava extends Router {
       if (url.query) {
         query = queryParser(url["query"] as string);
       }
-      const bodyConverter = await bodyParser(req as Request, res as Response);
-      if (!bodyConverter.status) {
-        return;
-      }
-      req["body"] = bodyConverter.body;
       req["query"] = query;
+      this.apply(bodyParser(req as Request, res as Response, () => {}));
       await this.handleResolvers(req as Request, res as Response, url);
     } catch (e) {
       if (this.exceptionFilterFN) {

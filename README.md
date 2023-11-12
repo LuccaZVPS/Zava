@@ -117,15 +117,11 @@ Zava allows you to define a function that will be called whenever an unhandled e
 import zava, { Response, Request } from "zava";
 
 const app = zava();
-
 // Define an error handler function
 const errorHandlerFn = (req: Response, res: Request, e: Error) => {
   console.log(e);
   res.send(500, "Internal Server Error");
 };
-
 // Add the exception filter to the application
 app.addExceptionFilter(errorHandlerFn);
-
-app.run(3000);
 ```
