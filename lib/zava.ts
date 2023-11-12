@@ -182,7 +182,7 @@ export class Zava extends Router {
     });
   }
 
-  static(folderName: string): IResolver {
+  public static Static(folderName: string): IResolver {
     const folderPath = rootPath.sync() + "/" + folderName;
     return (req, res) => {
       res["ended"] = true;

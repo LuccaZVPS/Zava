@@ -9,3 +9,4 @@ export const Router = () => {
 };
 export * from "./types";
 export default Zava;
+export const Static = ZavaClass.Static;
