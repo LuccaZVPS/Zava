@@ -27,12 +27,14 @@ export class Zava extends Router {
   addRoutes(router: IRouter) {
     this.routes = router.routes;
   }
-  run(port: number, cb: () => any) {
+  run(port: number, cb?: () => any) {
     const handleRequest = async (req: IncomingMessage, res: ServerResponse) =>
       this.requestHandler(req, res);
     const server = http.createServer(handleRequest);
     server.listen(port);
-    cb();
+    if (cb) {
+      cb();
+    }
   }
 
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
@@ -77,11 +79,10 @@ export class Zava extends Router {
       if (next && !res["ended"]) {
         const resolver = this.routes[i];
         req["pathConfig"] = resolver.route;
-
         if (
           resolver.regex &&
           resolver.regex.test(url.pathname) &&
-          req.method === resolver.method
+          req.method.toLowerCase() === resolver.method
         ) {
           next = false;
           await resolver.resolver(
@@ -98,7 +99,11 @@ export class Zava extends Router {
             res as Response,
             () => (next = true)
           );
-        } else if (resolver.regex && resolver.regex.test(url.pathname)) {
+        } else if (
+          resolver.regex &&
+          resolver.regex.test(url.pathname) &&
+          !resolver.method
+        ) {
           next = false;
           await resolver.resolver(
             req as Request,

@@ -9,7 +9,7 @@ export class Router implements IRouter {
   }
   post(route: string, ...cb: IResolver[]) {
     cb.forEach((c) => {
-      this.createRoute("get", route, c);
+      this.createRoute("post", route, c);
     });
   }
   put(route: string, ...cb: IResolver[]) {
