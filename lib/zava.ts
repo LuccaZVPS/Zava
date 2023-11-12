@@ -16,7 +16,6 @@ import {
 import parser from "parseurl";
 import { Router } from "./router";
 import { queryParser } from "./utils";
-import { cors } from "./middlewares/cors";
 import { bodyParser } from "./middlewares/body-parser";
 export class Zava extends Router {
   constructor() {
@@ -28,11 +27,12 @@ export class Zava extends Router {
   addRoutes(router: IRouter) {
     this.routes = router.routes;
   }
-  run(port: number) {
+  run(port: number, cb: () => any) {
     const handleRequest = async (req: IncomingMessage, res: ServerResponse) =>
       this.requestHandler(req, res);
     const server = http.createServer(handleRequest);
     server.listen(port);
+    cb();
   }
 
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
