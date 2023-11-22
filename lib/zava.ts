@@ -40,13 +40,8 @@ export class Zava extends Router {
   private async requestHandler(req: IncomingMessage, res: ServerResponse) {
     try {
       const url = parser.original(req);
+      this.addRequestProperties(req, res);
       let query = {};
-      req["body"] = {};
-      req["query"] = {};
-      req["params"] = {};
-      res["send"] = this.send;
-      res["ended"] = false;
-      res["sendFile"] = this.sendFile;
       if (url.query) {
         query = queryParser(url["query"] as string);
       }
@@ -251,4 +246,15 @@ export class Zava extends Router {
 
     this["ended"] = true;
   }
+  private readonly addRequestProperties = (
+    req: IncomingMessage,
+    res: ServerResponse
+  ): void => {
+    req["body"] = {};
+    req["query"] = {};
+    req["params"] = {};
+    res["send"] = this.send;
+    res["ended"] = false;
+    res["sendFile"] = this.sendFile;
+  };
 }

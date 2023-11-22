@@ -8,8 +8,6 @@ export const queryParser = (query: string): any => {
       return;
     });
   }
-  const querySplited = query.split("=");
-  queryFormated[querySplited[0]] = querySplited[1];
   return queryFormated;
 };
 export const getParams = (route: string, originalRoute: string) => {
