@@ -1,6 +1,6 @@
 import { Zava as ZavaClass } from "./zava";
 import { Router as RouterClass } from "./router";
-export * from "./middlewares/cors";
+export * from "./middlewares/index";
 const Zava = () => {
   return new ZavaClass();
 };
@@ -9,4 +9,3 @@ export const Router = () => {
 };
 export * from "./types";
 export default Zava;
-export const Static = ZavaClass.Static;

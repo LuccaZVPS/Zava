@@ -1,9 +1,7 @@
-import rootPath from "pkg-dir";
 import http, { ServerResponse, IncomingMessage } from "http";
 import { pathToRegexp } from "path-to-regexp";
 import fs from "fs";
 import mime from "mime";
-import path from "path";
 import {
   ErrorHandler,
   IResolver,
@@ -182,50 +180,6 @@ export class Zava extends Router {
         resolver: a,
       });
     });
-  }
-
-  public static Static(folderName: string): IResolver {
-    const folderPath = rootPath.sync() + "/" + folderName;
-    return (req, res) => {
-      res["ended"] = true;
-      if (req.method !== "GET") {
-        res.send(405);
-        return;
-      }
-      const url = parser(req);
-      if (!url.pathname.includes(".")) {
-        res.send(404);
-        return;
-      }
-
-      const filePath = path.join(
-        folderPath,
-        url.pathname.replace(req.pathConfig, "")
-      );
-
-      res["ended"] = true;
-      fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-          res.writeHead(404);
-          res.end("Not Found");
-        } else {
-          const fileStream = fs.createReadStream(filePath);
-
-          res.writeHead(200, {
-            "Content-Type": mime.lookup(filePath) || "application/octet-stream",
-            "Content-Disposition": "inline",
-          });
-
-          fileStream.pipe(res);
-
-          fileStream.on("error", (error) => {
-            console.log(error);
-            res.writeHead(500);
-            res.end("Internal Server Error");
-          });
-        }
-      });
-    };
   }
 
   private sendFile(status: number, filePath: string) {
