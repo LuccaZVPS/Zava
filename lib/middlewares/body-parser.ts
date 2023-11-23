@@ -1,49 +1,44 @@
 import { Request } from "../types";
-const BODY_LENGTH = 1024 * 1024
+const BODY_LENGTH = 1024 * 1024;
 export const bodyParser = () => {
-  return async (req:Request, res, fn) => {
+  return async (req: Request, res, fn) => {
     if (req.headers["content-type"] !== "application/json") {
-      fn()
-      return 
-    }
-    let  contentLength = parseInt(req.headers['content-length'], 10);
-    contentLength = isNaN(contentLength) ? contentLength : 1
-    if (contentLength > BODY_LENGTH) {
-      res.send(413,"Body too large");
+      fn();
       return;
     }
-    const bodyParserFn = new Promise((resolve, reject) => {
-      let body = Buffer.from("");
+    let contentLength = parseInt(req.headers["content-length"], 10);
+    contentLength = isNaN(contentLength) ? contentLength : 1;
+    if (contentLength > BODY_LENGTH) {
+      res.send(413, "Body too large");
+      return;
+    }
+    const bodyParserFn = async () => {
+      let data = Buffer.from("");
+      return new Promise((resolve, reject) => {
+        req.on("readable", () => {
+          let chunk;
 
-      req.on("data", (chunk) => {
-        if (Buffer.length + chunk.length > BODY_LENGTH) {
-          reject(new Error("Body too large"));
-          res.writeHead(413);
-          res.end("Body too large");
-          req.destroy();
-        } else {
-          body = Buffer.concat([body, chunk]);
-        }
-      });
-
-      req.on("end", () => {
-        try {
-          if (body.length > 0) {
-            body = JSON.parse(body.toString("utf-8"));
+          while ((chunk = req.read()) != null) {
+            if (data.length + chunk.length > BODY_LENGTH) {
+              res.send(413, "Body too large");
+              return reject(null);
+            }
+            data = Buffer.concat([data, chunk]);
           }
-          else {
-            body = {} as Buffer;
+        });
+        req.on("end", () => {
+          try {
+            const body = JSON.parse(data.toString());
+            req.body = body;
+            resolve(null);
+          } catch (e) {
+            console.log(e);
+            res.send(500);
           }
-          req["body"] = body;
-          fn();
-          resolve(null);
-        } catch (error) {
-          res.writeHead(400);
-          res.end("Invalid body provided");
-          reject(error);
-        }
+        });
       });
-    });
-    await bodyParserFn;
+    };
+    await bodyParserFn();
+    fn();
   };
 };
